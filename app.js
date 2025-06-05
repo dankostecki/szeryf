@@ -10,55 +10,123 @@ window.onGoogleLogin = function(response) {
   resetMediaScreen();
 };
 
-// ======= WYLOGOWANIE =======
-document.getElementById('logout').onclick = function() {
-  showScreen('login');
-  resetMediaScreen();
-  stopCamera(); // zatrzymaj kamerę przy wylogowaniu
-};
-
 // ======= WYBÓR I PODGLĄD PLIKÓW =======
 let selectedFile = null;
 let cameraStream = null; // NOWE: stream kamery
 
 function resetMediaScreen() {
   selectedFile = null;
-  document.getElementById('preview').innerHTML = '';
-  document.getElementById('upload-drive').disabled = true;
-  document.getElementById('progress-bar').style.display = 'none';
-  document.getElementById('progress-bar-inner').style.width = '0%';
-  document.getElementById('upload-status').innerText = '';
-  document.getElementById('photo-input').value = '';
-  document.getElementById('video-input').value = '';
-  document.getElementById('file-input').value = '';
+  const preview = document.getElementById('preview');
+  if (preview) preview.innerHTML = '';
+  
+  const uploadBtn = document.getElementById('upload-drive');
+  if (uploadBtn) uploadBtn.disabled = true;
+  
+  const progressBar = document.getElementById('progress-bar');
+  if (progressBar) progressBar.style.display = 'none';
+  
+  const progressInner = document.getElementById('progress-bar-inner');
+  if (progressInner) progressInner.style.width = '0%';
+  
+  const statusEl = document.getElementById('upload-status');
+  if (statusEl) statusEl.innerText = '';
+  
+  const photoInput = document.getElementById('photo-input');
+  if (photoInput) photoInput.value = '';
+  
+  const videoInput = document.getElementById('video-input');
+  if (videoInput) videoInput.value = '';
+  
+  const fileInput = document.getElementById('file-input');
+  if (fileInput) fileInput.value = '';
+  
   stopCamera(); // NOWE: zatrzymaj kamerę
 }
 
 // ======= OBSŁUGA PRZYCISKÓW - NAPRAWIONA =======
 
-// ZMIANA: Hybrydowe podejście do aparatu
-document.getElementById('take-photo').onclick = function() {
-  // Najpierw spróbuj JavaScript Camera API
-  startCamera();
-};
+// BEZPIECZNA inicjalizacja po załadowaniu DOM
+document.addEventListener('DOMContentLoaded', function() {
+  initializeEventListeners();
+});
 
-document.getElementById('record-video').onclick = function() {
-  document.getElementById('video-input').click();
-};
+// Fallback dla starszych przeglądarek
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeEventListeners);
+} else {
+  initializeEventListeners();
+}
 
-document.getElementById('choose-file').onclick = function() {
-  document.getElementById('file-input').click();
-};
+function initializeEventListeners() {
+  // ZMIANA: Hybrydowe podejście do aparatu
+  const takePhotoBtn = document.getElementById('take-photo');
+  if (takePhotoBtn) {
+    takePhotoBtn.onclick = function() {
+      startCamera();
+    };
+  }
 
-// Event listenery pozostają bez zmian
-document.getElementById('photo-input').addEventListener('change', handleFileSelect);
-document.getElementById('video-input').addEventListener('change', handleFileSelect);
-document.getElementById('file-input').addEventListener('change', handleFileSelect);
+  const recordVideoBtn = document.getElementById('record-video');
+  if (recordVideoBtn) {
+    recordVideoBtn.onclick = function() {
+      const videoInput = document.getElementById('video-input');
+      if (videoInput) videoInput.click();
+    };
+  }
+
+  const chooseFileBtn = document.getElementById('choose-file');
+  if (chooseFileBtn) {
+    chooseFileBtn.onclick = function() {
+      const fileInput = document.getElementById('file-input');
+      if (fileInput) fileInput.click();
+    };
+  }
+
+  // Event listenery dla inputów
+  const photoInput = document.getElementById('photo-input');
+  if (photoInput) {
+    photoInput.addEventListener('change', handleFileSelect);
+  }
+
+  const videoInput = document.getElementById('video-input');
+  if (videoInput) {
+    videoInput.addEventListener('change', handleFileSelect);
+  }
+
+  const fileInput = document.getElementById('file-input');
+  if (fileInput) {
+    fileInput.addEventListener('change', handleFileSelect);
+  }
+
+  // Upload button
+  const uploadBtn = document.getElementById('upload-drive');
+  if (uploadBtn) {
+    uploadBtn.onclick = handleUpload;
+  }
+
+  // Logout button
+  const logoutBtn = document.getElementById('logout');
+  if (logoutBtn) {
+    logoutBtn.onclick = function() {
+      showScreen('login');
+      resetMediaScreen();
+      stopCamera();
+    };
+  }
+}
 
 // ======= NOWE: FUNKCJE KAMERY JAVASCRIPT =======
 
 async function startCamera() {
   try {
+    // SPRAWDŹ czy elementy istnieją
+    const cameraVideo = document.getElementById('cameraVideo');
+    const cameraSection = document.getElementById('cameraSection');
+    
+    if (!cameraVideo || !cameraSection) {
+      throw new Error('Elementy kamery nie zostały znalezione w DOM');
+    }
+
     // Sprawdź wsparcie
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       throw new Error('Twoja przeglądarka nie obsługuje kamery');
@@ -86,12 +154,12 @@ async function startCamera() {
       cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
     }
     
-    const cameraVideo = document.getElementById('cameraVideo');
+    // BEZPIECZNE ustawienie srcObject
     cameraVideo.srcObject = cameraStream;
     
     cameraVideo.onloadedmetadata = () => {
       cameraVideo.play();
-      document.getElementById('cameraSection').style.display = 'block';
+      cameraSection.style.display = 'block';
     };
     
   } catch (error) {
@@ -100,7 +168,10 @@ async function startCamera() {
     
     // FALLBACK: jeśli kamera JS nie działa, spróbuj input
     setTimeout(() => {
-      document.getElementById('photo-input').click();
+      const photoInput = document.getElementById('photo-input');
+      if (photoInput) {
+        photoInput.click();
+      }
     }, 1000);
   }
 }
@@ -109,6 +180,11 @@ function capturePhoto() {
   try {
     const canvas = document.getElementById('captureCanvas');
     const video = document.getElementById('cameraVideo');
+    
+    // SPRAWDŹ czy elementy istnieją
+    if (!canvas || !video) {
+      throw new Error('Elementy kamery nie zostały znalezione');
+    }
     
     if (video.readyState !== video.HAVE_ENOUGH_DATA) {
       showError('Kamera jeszcze się ładuje. Spróbuj ponownie za chwilę.');
@@ -133,7 +209,10 @@ function capturePhoto() {
       const url = URL.createObjectURL(blob);
       showPreview(selectedFile, url);
       
-      document.getElementById('upload-drive').disabled = false;
+      const uploadBtn = document.getElementById('upload-drive');
+      if (uploadBtn) {
+        uploadBtn.disabled = false;
+      }
       stopCamera();
       
     }, 'image/jpeg', 0.95);
@@ -161,20 +240,26 @@ function stopCamera() {
   }
 }
 
-// ======= OBSŁUGA WYBORU PLIKÓW - BEZ ZMIAN =======
+// ======= OBSŁUGA WYBORU PLIKÓW =======
 
 function handleFileSelect(e) {
   if (e.target.files.length > 0) {
     selectedFile = e.target.files[0];
     showPreview(selectedFile);
-    document.getElementById('upload-drive').disabled = false;
-    document.getElementById('upload-status').innerText = '';
+    
+    const uploadBtn = document.getElementById('upload-drive');
+    if (uploadBtn) uploadBtn.disabled = false;
+    
+    const statusEl = document.getElementById('upload-status');
+    if (statusEl) statusEl.innerText = '';
   }
 }
 
 // ZMIANA: Dodaj obsługę customUrl dla zdjęć z kamery
 function showPreview(file, customUrl = null) {
   const preview = document.getElementById('preview');
+  if (!preview) return;
+  
   preview.innerHTML = '';
   
   const url = customUrl || URL.createObjectURL(file);
@@ -204,11 +289,13 @@ function showError(message) {
   errorDiv.innerHTML = '❌ ' + message;
   
   const preview = document.getElementById('preview');
-  preview.innerHTML = '';
-  preview.appendChild(errorDiv);
+  if (preview) {
+    preview.innerHTML = '';
+    preview.appendChild(errorDiv);
+  }
 }
 
-// ======= GOOGLE DRIVE UPLOAD - BEZ ZMIAN =======
+// ======= GOOGLE DRIVE UPLOAD - NAPRAWIONE =======
 let accessToken = null;
 
 function getAccessToken(callback) {
@@ -223,38 +310,61 @@ function getAccessToken(callback) {
   }).requestAccessToken();
 }
 
-document.getElementById('upload-drive').onclick = function() {
+function handleUpload() {
   if (!selectedFile) return;
 
   getAccessToken(function(token) {
     const now = new Date();
     const folderName = `szeryf_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
 
-    document.getElementById('upload-status').innerText = "Tworzę folder na Drive...";
-    document.getElementById('progress-bar').style.display = 'none';
+    const statusEl = document.getElementById('upload-status');
+    if (statusEl) statusEl.innerText = "Tworzę folder na Drive...";
+    
+    const progressBar = document.getElementById('progress-bar');
+    if (progressBar) progressBar.style.display = 'none';
 
-    createDriveFolder(token, folderName).then(folderId => {
-      return shareFolderAnyone(token, folderId).then(() => folderId);
-    }).then(folderId => {
-      document.getElementById('upload-status').innerText = "Przesyłam plik...";
-      document.getElementById('progress-bar').style.display = 'block';
-      document.getElementById('progress-bar-inner').style.width = '0%';
+    createDriveFolder(token, folderName)
+      .then(folderId => {
+        console.log('Created folder ID:', folderId); // Debug
+        return shareFolderAnyone(token, folderId).then(() => folderId);
+      })
+      .then(folderId => {
+        console.log('Sharing folder ID:', folderId); // Debug
+        if (statusEl) statusEl.innerText = "Przesyłam plik...";
+        if (progressBar) progressBar.style.display = 'block';
+        
+        const progressInner = document.getElementById('progress-bar-inner');
+        if (progressInner) progressInner.style.width = '0%';
 
-      uploadFileToDrive(token, selectedFile, folderId, (progress) => {
-        document.getElementById('progress-bar-inner').style.width = `${progress}%`;
-      }).then(resp => {
-        const folderLink = `https://drive.google.com/drive/folders/${resp.parents[0]}`;
-        document.getElementById('upload-status').innerHTML =
-          `✅ Plik wrzucony na Drive!<br>
-          <a href="${folderLink}" target="_blank">Kliknij, by zobaczyć folder (dostępny dla każdego z linkiem)</a>`;
-        resetMediaScreen();
-      }).catch(err => {
-        document.getElementById('upload-status').innerText = "❌ Błąd uploadu: " + err;
-        document.getElementById('progress-bar').style.display = 'none';
+        return uploadFileToDrive(token, selectedFile, folderId, (progress) => {
+          if (progressInner) progressInner.style.width = `${progress}%`;
+        }).then(resp => {
+          console.log('Upload response:', resp); // Debug
+          
+          // NAPRAWKA: Bezpieczne pobieranie folder ID
+          let folderLink;
+          if (resp.parents && resp.parents.length > 0) {
+            folderLink = `https://drive.google.com/drive/folders/${resp.parents[0]}`;
+          } else {
+            // Fallback: użyj folderId z wcześniejszego kroku
+            folderLink = `https://drive.google.com/drive/folders/${folderId}`;
+          }
+          
+          if (statusEl) {
+            statusEl.innerHTML =
+              `✅ Plik wrzucony na Drive!<br>
+              <a href="${folderLink}" target="_blank">Kliknij, by zobaczyć folder (dostępny dla każdego z linkiem)</a>`;
+          }
+          resetMediaScreen();
+        });
+      })
+      .catch(err => {
+        console.error('Upload error:', err); // Debug
+        if (statusEl) statusEl.innerText = "❌ Błąd uploadu: " + err;
+        if (progressBar) progressBar.style.display = 'none';
       });
-    });
   });
-};
+}
 
 function createDriveFolder(token, folderName) {
   return fetch('https://www.googleapis.com/drive/v3/files', {
@@ -268,8 +378,23 @@ function createDriveFolder(token, folderName) {
       mimeType: 'application/vnd.google-apps.folder'
     })
   })
-    .then(r => r.json())
-    .then(data => data.id);
+    .then(r => {
+      if (!r.ok) {
+        throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+      }
+      return r.json();
+    })
+    .then(data => {
+      console.log('Folder created:', data); // Debug
+      if (!data.id) {
+        throw new Error('Brak ID utworzonego folderu');
+      }
+      return data.id;
+    })
+    .catch(error => {
+      console.error('Error creating folder:', error);
+      throw error;
+    });
 }
 
 function shareFolderAnyone(token, folderId) {
@@ -283,7 +408,21 @@ function shareFolderAnyone(token, folderId) {
       role: 'reader',
       type: 'anyone'
     })
-  }).then(r => r.json());
+  })
+    .then(r => {
+      if (!r.ok) {
+        throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+      }
+      return r.json();
+    })
+    .then(data => {
+      console.log('Folder shared:', data); // Debug
+      return data;
+    })
+    .catch(error => {
+      console.error('Error sharing folder:', error);
+      throw error;
+    });
 }
 
 function uploadFileToDrive(token, file, folderId, onProgress) {
@@ -330,23 +469,43 @@ function uploadFileToDrive(token, file, folderId, onProgress) {
 
       xhr.onload = function() {
         if (xhr.status === 200) {
-          resolve(JSON.parse(xhr.response));
+          try {
+            const response = JSON.parse(xhr.response);
+            console.log('Raw API response:', response); // Debug
+            
+            // NAPRAWKA: Dodaj parents jeśli ich brak
+            if (!response.parents) {
+              response.parents = [folderId];
+            }
+            
+            resolve(response);
+          } catch (parseError) {
+            console.error('Error parsing response:', parseError);
+            reject("Błąd parsowania odpowiedzi z Google Drive");
+          }
         } else {
-          reject(xhr.responseText);
+          console.error('HTTP Error:', xhr.status, xhr.responseText);
+          reject(`HTTP ${xhr.status}: ${xhr.responseText}`);
         }
       };
 
       xhr.onerror = function() {
+        console.error('Network error during upload');
         reject("Błąd połączenia z Google Drive");
       };
 
       xhr.send(multipartRequestBody);
     };
+    
+    reader.onerror = function() {
+      reject("Błąd odczytu pliku");
+    };
+    
     reader.readAsArrayBuffer(file);
   });
 }
 
-// ======= NOWE: SPRAWDZENIE DOSTĘPNOŚCI KAMERY =======
+// ======= SPRAWDZENIE DOSTĘPNOŚCI KAMERY =======
 window.addEventListener('load', async () => {
   try {
     const devices = await navigator.mediaDevices.enumerateDevices();
@@ -354,7 +513,10 @@ window.addEventListener('load', async () => {
     
     if (videoDevices.length === 0) {
       console.warn('Brak dostępnych kamer');
-      document.getElementById('take-photo').innerText = '📁 Wybierz zdjęcie (brak kamery)';
+      const takePhotoBtn = document.getElementById('take-photo');
+      if (takePhotoBtn) {
+        takePhotoBtn.innerText = '📁 Wybierz zdjęcie (brak kamery)';
+      }
     } else {
       console.log(`Znaleziono ${videoDevices.length} kamer:`, videoDevices);
     }
