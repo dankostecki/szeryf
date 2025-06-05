@@ -25,10 +25,10 @@ function resetMediaScreen() {
   document.getElementById('progress-bar').style.display = 'none';
   document.getElementById('progress-bar-inner').style.width = '0%';
   document.getElementById('upload-status').innerText = '';
-  document.getElementById('visible-file-input').value = '';
+  document.getElementById('fileInput').value = '';
 }
 
-document.getElementById('visible-file-input').addEventListener('change', function(e) {
+document.getElementById('fileInput').addEventListener('change', function(e) {
   if (e.target.files.length > 0) {
     selectedFile = e.target.files[0];
     showPreview(selectedFile);
