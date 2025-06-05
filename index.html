@@ -7,7 +7,7 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     body { font-family: sans-serif; background: #f8f9fa; color: #222; margin: 0; padding: 0; }
-    section { max-width: 400px; margin: 4em auto; padding: 2em; background: #fff; border-radius: 10px; box-shadow: 0 2px 16px #ccc2; display: none; }
+    section { max-width: 500px; margin: 4em auto; padding: 2em; background: #fff; border-radius: 10px; box-shadow: 0 2px 16px #ccc2; display: none; }
     section.active { display: block; }
     h2 { margin-top: 0; }
     button {
@@ -25,6 +25,92 @@
     button:disabled { background: #eee; color: #aaa; cursor: not-allowed; }
     button:hover:not(:disabled) { background: #bbdefb; }
     
+    /* NOWE STYLE DLA SIATKI KAFELKÓW */
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 1.5em 0;
+    }
+    
+    .preview-tile {
+      position: relative;
+      background: #f5f5f5;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid #e0e0e0;
+      aspect-ratio: 1;
+    }
+    
+    .delete-btn {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      background: rgba(244, 67, 54, 0.9);
+      color: white;
+      border: none;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .delete-btn:hover {
+      background: #f44336;
+      transform: scale(1.1);
+    }
+    
+    .file-content {
+      width: 100%;
+      height: calc(100% - 30px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    
+    .file-content img,
+    .file-content video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .file-icon {
+      font-size: 2em;
+      opacity: 0.6;
+    }
+    
+    .file-name {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 4px 6px;
+      font-size: 10px;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    
+    /* RESPONSYWNOŚĆ */
+    @media (max-width: 400px) {
+      .preview-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    /* POZOSTAŁE STYLE ZACHOWANE */
     #preview img, #preview video {
       max-width: 100%;
       margin-top: 1em;
@@ -82,26 +168,26 @@
 
   <!-- Ekran 2: Wybór pliku i upload -->
   <section id="media-screen">
-    <h2>Dodaj zdjęcie lub film</h2>
+    <h2>Dodaj zdjęcia i filmy</h2>
     
     <!-- PROSTE PRZYCISKI -->
     <button id="take-photo">📸 Zrób zdjęcie</button>
     <button id="record-video">🎥 Nagraj film</button>
-    <button id="choose-file">📁 Wybierz plik z telefonu</button>
+    <button id="choose-file">📁 Wybierz pliki z telefonu</button>
     
     <!-- NAPRAWDĘ UKRYTE INPUTY -->
     <input type="file" id="photo-input" accept="image/*" capture="environment" class="hidden-input">
     <input type="file" id="video-input" accept="video/*" capture="user" class="hidden-input">
-    <input type="file" id="file-input" accept="image/*,video/*" class="hidden-input">
+    <input type="file" id="file-input" accept="image/*,video/*" multiple class="hidden-input">
     
-    <!-- Podgląd -->
+    <!-- Podgląd jako siatka kafelków -->
     <div id="preview"></div>
     
     <!-- Upload -->
     <div id="progress-bar">
       <div id="progress-bar-inner"></div>
     </div>
-    <button id="upload-drive" disabled>Wyślij na Drive</button>
+    <button id="upload-drive" disabled>Wyślij wszystkie na Drive</button>
     <div id="upload-status"></div>
     
     <!-- Wylogowanie -->
