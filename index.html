@@ -64,9 +64,16 @@
   <!-- Ekran 2: Foto/Wideo/Plik -->
   <section id="media-screen">
     <h2>Dodaj zdjęcie lub film</h2>
+
     <button id="take-photo">Zrób zdjęcie</button>
+    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none;">
+
     <button id="record-video">Nagraj film</button>
-    <input type="file" id="file-input" accept="image/*,video/*" capture>
+    <input type="file" id="video-input" accept="video/*" capture="user" style="display:none;">
+
+    <button id="choose-file">Dodaj zdjęcie/film z telefonu</button>
+    <input type="file" id="file-input" accept="image/*,video/*" style="display:none;">
+
     <div id="preview"></div>
     <div id="progress-bar">
       <div id="progress-bar-inner"></div>
