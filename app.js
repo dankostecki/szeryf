@@ -6,8 +6,8 @@ function showScreen(id) {
 
 // ======= LOGOWANIE =======
 window.onGoogleLogin = function(response) {
-  showScreen('capture-evidence');
-  resetApp();
+  showScreen('media-screen');
+  resetMediaScreen();
 };
 
 // ======= STAN APLIKACJI =======
@@ -15,16 +15,15 @@ let selectedFiles = [];
 let uploadInProgress = false;
 let currentLocation = null;
 let uploadResults = null;
-let reportData = {};
 
-function resetApp() {
+function resetMediaScreen() {
   selectedFiles = [];
   uploadInProgress = false;
   uploadResults = null;
   currentLocation = null;
-  reportData = {};
   
-  document.getElementById('media-preview').innerHTML = '';
+  document.getElementById('preview').innerHTML = '';
+  document.getElementById('upload-drive').disabled = true;
   document.getElementById('progress-bar-global').style.display = 'none';
   document.getElementById('progress-bar-inner-global').style.width = '0%';
   document.getElementById('upload-status-global').innerText = '';
@@ -32,67 +31,68 @@ function resetApp() {
   document.getElementById('video-input').value = '';
   document.getElementById('file-input').value = '';
   
-  // Reset formularzy
+  // Reset formularza
   document.getElementById('incident-title').value = '';
   document.getElementById('incident-description').value = '';
-  document.getElementById('location-input').value = '';
-  document.getElementById('police-dept').checked = true;
-  document.getElementById('custom-email').checked = false;
+  document.getElementById('location-display').innerText = '';
 }
 
-// ======= INICJALIZACJA =======
+// ======= PROSTE PRZYCISKI - BEZ KOMPLIKACJI =======
 document.addEventListener('DOMContentLoaded', function() {
-  // Przyciski dodawania mediów
-  document.getElementById('photo-btn').onclick = function() {
+  document.getElementById('take-photo').onclick = function() {
     document.getElementById('photo-input').click();
   };
   
-  document.getElementById('video-btn').onclick = function() {
+  document.getElementById('record-video').onclick = function() {
     document.getElementById('video-input').click();
   };
 
-  // Przycisk Continue to Report
-  document.getElementById('continue-to-report').onclick = function() {
-    if (selectedFiles.length === 0) {
-      alert('Proszę dodać przynajmniej jeden plik');
-      return;
-    }
+  document.getElementById('choose-file').onclick = function() {
+    document.getElementById('file-input').click();
+  };
+
+  document.getElementById('logout').onclick = function() {
+    showScreen('login');
+    resetMediaScreen();
+  };
+
+  // NOWY: Przycisk przejścia do formularza
+  document.getElementById('continue-to-form').onclick = function() {
+    showScreen('incident-form');
+    updateEvidenceCounter();
     
-    // Rozpocznij upload w tle i przejdź do formularza
+    // Jeśli nie ma jeszcze lokalizacji, spróbuj ją pobrać
+    if (!currentLocation) {
+      getCurrentLocation();
+    }
+  };
+
+  // NOWY: Przycisk powrotu do dodawania plików
+  document.getElementById('back-to-media').onclick = function() {
+    showScreen('media-screen');
+  };
+
+  // Upload button - ZMIENIONY dla uploadu w tle
+  document.getElementById('upload-drive').onclick = function() {
+    if (selectedFiles.length === 0) return;
+    
     startBackgroundUpload();
-    showScreen('incident-details');
+  };
+
+  // NOWY: Przycisk wykrycia lokalizacji
+  document.getElementById('detect-location').onclick = function() {
     getCurrentLocation();
   };
 
-  // Przycisk Continue to Recipient
-  document.getElementById('continue-to-recipient').onclick = function() {
-    if (!validateIncidentForm()) return;
-    
-    saveIncidentData();
-    showScreen('send-report');
-    updateRecipientScreen();
-  };
-
-  // Przycisk Send Report
-  document.getElementById('send-report-btn').onclick = function() {
-    sendFinalReport();
-  };
-
-  // Przycisk Submit Another Report
-  document.getElementById('submit-another').onclick = function() {
-    showScreen('capture-evidence');
-    resetApp();
-  };
-
-  // Logout
-  document.getElementById('logout').onclick = function() {
-    showScreen('login');
-    resetApp();
+  // NOWY: Przycisk wysłania zgłoszenia
+  document.getElementById('submit-incident').onclick = function() {
+    submitIncident();
   };
 
   // Event listenery dla inputów
   document.getElementById('photo-input').addEventListener('change', handleFileSelect);
   document.getElementById('video-input').addEventListener('change', handleFileSelect);
+  document.getElementById('file-input').addEventListener('change', handleFileSelect);
 });
 
 // ======= OBSŁUGA PLIKÓW =======
@@ -102,82 +102,81 @@ function handleFileSelect(e) {
       selectedFiles.push(e.target.files[i]);
     }
     
-    updateMediaPreview();
-    updateContinueButton();
+    showPreviewGrid();
+    updateButtons();
     e.target.value = '';
   }
 }
 
-function updateMediaPreview() {
-  const preview = document.getElementById('media-preview');
-  const mediaCount = document.getElementById('media-count');
+function showPreviewGrid() {
+  const preview = document.getElementById('preview');
+  preview.innerHTML = '';
   
   if (selectedFiles.length === 0) {
-    preview.style.display = 'none';
-    mediaCount.style.display = 'none';
     return;
   }
   
-  preview.style.display = 'block';
-  mediaCount.style.display = 'block';
-  mediaCount.textContent = `Twoje media (${selectedFiles.length})`;
-  
-  // Wyczyść preview
-  const grid = preview.querySelector('.media-grid');
-  grid.innerHTML = '';
+  const grid = document.createElement('div');
+  grid.className = 'preview-grid';
   
   selectedFiles.forEach((file, index) => {
     const tile = document.createElement('div');
-    tile.className = 'media-tile';
+    tile.className = 'preview-tile';
     
-    // Ikona usuń
     const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'delete-media-btn';
+    deleteBtn.className = 'delete-btn';
     deleteBtn.innerHTML = '×';
     deleteBtn.onclick = (e) => {
       e.preventDefault();
       removeFile(index);
     };
     
-    // Podgląd pliku  
-    const content = document.createElement('div');
-    content.className = 'media-content';
+    const filePreview = document.createElement('div');
+    filePreview.className = 'file-content';
     
     if (file.type.startsWith('image/')) {
       const img = document.createElement('img');
       img.src = URL.createObjectURL(file);
-      content.appendChild(img);
+      filePreview.appendChild(img);
     } else if (file.type.startsWith('video/')) {
       const video = document.createElement('video');
       video.src = URL.createObjectURL(file);
       video.muted = true;
       video.preload = 'metadata';
-      content.appendChild(video);
+      filePreview.appendChild(video);
     } else {
-      content.innerHTML = `<div class="file-placeholder">PLIK</div>`;
+      const fileIcon = document.createElement('div');
+      fileIcon.className = 'file-icon';
+      fileIcon.innerHTML = '📄';
+      filePreview.appendChild(fileIcon);
     }
     
-    // Tekst na dole
-    const label = document.createElement('div');
-    label.className = 'media-label';
-    label.textContent = 'Moja Spiżarnia';
+    const fileName = document.createElement('div');
+    fileName.className = 'file-name';
+    fileName.textContent = file.name;
     
     tile.appendChild(deleteBtn);
-    tile.appendChild(content);
-    tile.appendChild(label);
+    tile.appendChild(filePreview);
+    tile.appendChild(fileName);
     grid.appendChild(tile);
   });
+  
+  preview.appendChild(grid);
 }
 
 function removeFile(index) {
   selectedFiles.splice(index, 1);
-  updateMediaPreview();
-  updateContinueButton();
+  showPreviewGrid();
+  updateButtons();
 }
 
-function updateContinueButton() {
-  const btn = document.getElementById('continue-to-report');
-  btn.disabled = selectedFiles.length === 0;
+function updateButtons() {
+  const hasFiles = selectedFiles.length > 0;
+  document.getElementById('upload-drive').disabled = !hasFiles || uploadInProgress;
+  document.getElementById('continue-to-form').disabled = !hasFiles;
+  
+  const status = hasFiles ? `Wybrano ${selectedFiles.length} plik(ów)` : '';
+  document.getElementById('upload-status-media').innerText = status;
 }
 
 // ======= UPLOAD W TLE =======
@@ -185,17 +184,20 @@ function startBackgroundUpload() {
   if (uploadInProgress || selectedFiles.length === 0) return;
   
   uploadInProgress = true;
+  updateButtons();
   
   getAccessToken(function(token) {
     const now = new Date();
     const folderName = `szeryf_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
 
-    document.getElementById('upload-status-global').innerText = "Przesyłanie plików na Drive...";
+    document.getElementById('upload-status-global').innerText = "Tworzę folder na Drive...";
     document.getElementById('progress-bar-global').style.display = 'block';
 
     createDriveFolder(token, folderName).then(folderId => {
       return shareFolderAnyone(token, folderId).then(() => folderId);
     }).then(folderId => {
+      document.getElementById('upload-status-global').innerText = `Przesyłam pliki (${selectedFiles.length})...`;
+
       uploadMultipleFilesToDrive(token, selectedFiles, folderId, (progress) => {
         document.getElementById('progress-bar-inner-global').style.width = `${progress}%`;
       }).then(resp => {
@@ -207,166 +209,175 @@ function startBackgroundUpload() {
           fileCount: selectedFiles.length
         };
         
-        document.getElementById('upload-status-global').innerHTML = `Pliki przesłane pomyślnie`;
+        document.getElementById('upload-status-global').innerHTML =
+          `✅ Wszystkie pliki (${selectedFiles.length}) wrzucone na Drive!`;
+        
         uploadInProgress = false;
+        updateButtons();
+        
+        // Auto-przejście do formularza po udanym uploade
+        if (document.getElementById('media-screen').classList.contains('active')) {
+          setTimeout(() => {
+            document.getElementById('continue-to-form').click();
+          }, 1500);
+        }
         
       }).catch(err => {
-        document.getElementById('upload-status-global').innerText = "Błąd przesyłania: " + err;
+        document.getElementById('upload-status-global').innerText = "❌ Błąd uploadu: " + err;
+        document.getElementById('progress-bar-global').style.display = 'none';
         uploadInProgress = false;
+        updateButtons();
       });
+    }).catch(err => {
+      document.getElementById('upload-status-global').innerText = "❌ Błąd tworzenia folderu: " + err;
+      uploadInProgress = false;
+      updateButtons();
     });
   });
 }
 
 // ======= GEOLOKALIZACJA =======
 function getCurrentLocation() {
-  if (!navigator.geolocation) return;
+  const locationBtn = document.getElementById('detect-location');
+  const locationDisplay = document.getElementById('location-display');
+  
+  locationBtn.disabled = true;
+  locationBtn.innerText = 'Wykrywam lokalizację...';
+  
+  if (!navigator.geolocation) {
+    locationDisplay.innerText = 'Geolokalizacja nie jest obsługiwana';
+    locationBtn.disabled = false;
+    locationBtn.innerText = '📍 Wykryj lokalizację';
+    return;
+  }
 
   navigator.geolocation.getCurrentPosition(
-    (position) => {
+    async (position) => {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
+      
       currentLocation = { lat, lng };
       
-      // Spróbuj uzyskać nazwę miejsca
-      document.getElementById('location-input').value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      // Spróbuj pobrać nazwę miejsca (reverse geocoding)
+      try {
+        // Prosty sposób bez zewnętrznych API - można rozbudować
+        locationDisplay.innerHTML = `📍 Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}<br><small>Kliknij aby zmienić na mapie</small>`;
+        locationDisplay.onclick = () => openMapSelector(lat, lng);
+        
+      } catch (error) {
+        locationDisplay.innerHTML = `📍 Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}<br><small>Kliknij aby zmienić na mapie</small>`;
+        locationDisplay.onclick = () => openMapSelector(lat, lng);
+      }
+      
+      locationBtn.disabled = false;
+      locationBtn.innerText = '📍 Wykryj ponownie';
     },
     (error) => {
-      console.log('Nie można pobrać lokalizacji:', error);
+      locationDisplay.innerText = 'Nie można pobrać lokalizacji. Kliknij aby wybrać na mapie.';
+      locationDisplay.onclick = () => openMapSelector();
+      locationBtn.disabled = false;
+      locationBtn.innerText = '📍 Wykryj lokalizację';
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 60000
     }
   );
 }
 
+function openMapSelector(defaultLat = 52.2297, defaultLng = 21.0122) {
+  // Prosta mapa w popup - można rozbudować o Google Maps API
+  const mapUrl = `https://www.google.com/maps/@${defaultLat},${defaultLng},15z`;
+  const confirmed = confirm(`Aktualnie wybrana lokalizacja:\nLat: ${defaultLat.toFixed(6)}\nLng: ${defaultLng.toFixed(6)}\n\nKliknij OK aby otworzyć mapy Google i wybrać dokładną lokalizację.`);
+  
+  if (confirmed) {
+    window.open(mapUrl, '_blank');
+    // W prawdziwej implementacji można by dodać Google Maps widget
+  }
+}
+
 // ======= FORMULARZ INCYDENTU =======
-function validateIncidentForm() {
+function updateEvidenceCounter() {
+  const counter = document.getElementById('evidence-counter');
+  counter.innerText = `Your Evidence (${selectedFiles.length})`;
+  
+  const evidencePreview = document.getElementById('evidence-preview');
+  evidencePreview.innerHTML = '';
+  
+  if (selectedFiles.length > 0) {
+    const preview = document.createElement('div');
+    preview.className = 'evidence-mini-grid';
+    
+    selectedFiles.slice(0, 3).forEach(file => {
+      const thumb = document.createElement('div');
+      thumb.className = 'evidence-thumb';
+      
+      if (file.type.startsWith('image/')) {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        thumb.appendChild(img);
+      } else if (file.type.startsWith('video/')) {
+        thumb.innerHTML = '🎥';
+        thumb.classList.add('video-thumb');
+      } else {
+        thumb.innerHTML = '📄';
+        thumb.classList.add('file-thumb');
+      }
+      
+      preview.appendChild(thumb);
+    });
+    
+    if (selectedFiles.length > 3) {
+      const more = document.createElement('div');
+      more.className = 'evidence-thumb more-thumb';
+      more.innerHTML = `+${selectedFiles.length - 3}`;
+      preview.appendChild(more);
+    }
+    
+    evidencePreview.appendChild(preview);
+  }
+}
+
+function submitIncident() {
   const title = document.getElementById('incident-title').value.trim();
   const description = document.getElementById('incident-description').value.trim();
   
   if (!title) {
     alert('Proszę wprowadzić tytuł incydentu');
-    return false;
-  }
-  
-  if (!description) {
-    alert('Proszę opisać incydent');
-    return false;
-  }
-  
-  return true;
-}
-
-function saveIncidentData() {
-  reportData = {
-    title: document.getElementById('incident-title').value.trim(),
-    description: document.getElementById('incident-description').value.trim(),
-    location: document.getElementById('location-input').value.trim() || 'Nie określono',
-    timestamp: new Date().toLocaleString('pl-PL'),
-    fileCount: selectedFiles.length
-  };
-}
-
-function updateIncidentEvidence() {
-  const evidenceCount = document.getElementById('evidence-count');
-  const evidenceGrid = document.getElementById('evidence-grid');
-  
-  evidenceCount.textContent = `Twoje dowody (${selectedFiles.length})`;
-  
-  evidenceGrid.innerHTML = '';
-  
-  selectedFiles.forEach(file => {
-    const tile = document.createElement('div');
-    tile.className = 'evidence-tile';
-    
-    if (file.type.startsWith('image/')) {
-      const img = document.createElement('img');
-      img.src = URL.createObjectURL(file);
-      tile.appendChild(img);
-    } else if (file.type.startsWith('video/')) {
-      tile.innerHTML = '<div class="video-placeholder">FILM</div>';
-    } else {
-      tile.innerHTML = '<div class="file-placeholder">PLIK</div>';
-    }
-    
-    const label = document.createElement('div');
-    label.className = 'evidence-label';
-    label.textContent = 'Moja Spiżarnia';
-    tile.appendChild(label);
-    
-    evidenceGrid.appendChild(tile);
-  });
-}
-
-// Aktualizuj dowody gdy przejdziemy do formularza
-document.addEventListener('DOMContentLoaded', function() {
-  const observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(mutation) {
-      if (mutation.target.id === 'incident-details' && mutation.target.classList.contains('active')) {
-        updateIncidentEvidence();
-      }
-    });
-  });
-  
-  observer.observe(document.body, {
-    subtree: true,
-    attributeFilter: ['class']
-  });
-});
-
-// ======= WYBÓR ODBIORCY =======
-function updateRecipientScreen() {
-  // Tutaj można dodać logikę wyboru departamentu
-}
-
-// ======= WYSŁANIE RAPORTU =======
-function sendFinalReport() {
-  if (!uploadResults) {
-    alert('Pliki muszą być najpierw przesłane');
     return;
   }
   
-  const isPolice = document.getElementById('police-dept').checked;
-  const recipient = isPolice ? 'Komenda Policji - Północny Okręg' : 'Niestandardowy email';
-  const email = isPolice ? 'north@police.gov.pl' : 'custom@example.com';
+  if (!description) {
+    alert('Proszę opisać co się wydarzyło');
+    return;
+  }
   
-  // Pokaż ekran potwierdzenia
-  showConfirmationScreen(recipient, email);
+  if (!uploadResults) {
+    alert('Pliki muszą być najpierw przesłane na Drive');
+    return;
+  }
+  
+  // Podsumowanie zgłoszenia
+  let summary = `✅ ZGŁOSZENIE WYSŁANE!\n\n`;
+  summary += `📋 Tytuł: ${title}\n`;
+  summary += `📝 Opis: ${description}\n`;
+  summary += `📂 Pliki: ${uploadResults.fileCount} plik(ów) na Drive\n`;
+  
+  if (currentLocation) {
+    summary += `📍 Lokalizacja: ${currentLocation.lat.toFixed(6)}, ${currentLocation.lng.toFixed(6)}\n`;
+  }
+  
+  summary += `\n🔗 Link do plików:\n${uploadResults.folderLink}`;
+  
+  alert(summary);
+  
+  // Reset i powrót do początku
+  showScreen('media-screen');
+  resetMediaScreen();
 }
 
-function showConfirmationScreen(recipient, email) {
-  // Aktualizuj dane na ekranie potwierdzenia
-  document.getElementById('sent-to-name').textContent = recipient;
-  document.getElementById('sent-to-email').textContent = email;
-  document.getElementById('report-title-summary').textContent = reportData.title;
-  document.getElementById('report-location-summary').textContent = reportData.location;
-  
-  // Aktualizuj dowody
-  const attachedGrid = document.getElementById('attached-evidence-grid');
-  attachedGrid.innerHTML = '';
-  
-  selectedFiles.forEach(file => {
-    const tile = document.createElement('div');
-    tile.className = 'evidence-tile';
-    
-    if (file.type.startsWith('image/')) {
-      const img = document.createElement('img');
-      img.src = URL.createObjectURL(file);
-      tile.appendChild(img);
-    } else {
-      tile.innerHTML = '<div class="file-placeholder">FILM</div>';
-    }
-    
-    const label = document.createElement('div');
-    label.className = 'evidence-label';
-    label.textContent = 'Moja Spiżarnia';
-    tile.appendChild(label);
-    
-    attachedGrid.appendChild(tile);
-  });
-  
-  showScreen('report-submitted');
-}
-
-// ======= GOOGLE DRIVE FUNKCJE =======
+// ======= GOOGLE DRIVE FUNKCJE (ZACHOWANE) =======
 let accessToken = null;
 
 function getAccessToken(callback) {
@@ -389,7 +400,7 @@ function uploadMultipleFilesToDrive(token, files, folderId, onProgress) {
     const uploadNext = (index) => {
       if (index >= files.length) {
         if (errors.length > 0) {
-          reject(`Błędy przy ${errors.length} plikach`);
+          reject(`Błędy przy ${errors.length} plikach: ${errors.join(', ')}`);
         } else {
           resolve(`Przesłano ${uploadedCount} plików`);
         }
