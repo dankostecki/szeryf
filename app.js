@@ -1,4 +1,3 @@
-// ======= EKRANY =======
 function showScreen(id) {
   document.querySelectorAll('section').forEach(sec => sec.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -6,8 +5,8 @@ function showScreen(id) {
 
 // ======= LOGOWANIE =======
 window.onGoogleLogin = function(response) {
-  // Użytkownik zalogowany – przejdź do ekranu wyboru plików
   showScreen('media-screen');
+  resetMediaScreen();
 };
 
 // ======= WYLOGOWANIE =======
@@ -26,34 +25,37 @@ function resetMediaScreen() {
   document.getElementById('progress-bar').style.display = 'none';
   document.getElementById('progress-bar-inner').style.width = '0%';
   document.getElementById('upload-status').innerText = '';
+  document.getElementById('photo-input').value = '';
+  document.getElementById('video-input').value = '';
   document.getElementById('file-input').value = '';
 }
 
-// input file
-document.getElementById('file-input').addEventListener('change', function(e) {
+// Robienie zdjęcia
+document.getElementById('take-photo').onclick = function() {
+  document.getElementById('photo-input').click();
+};
+document.getElementById('photo-input').addEventListener('change', handleFileSelect);
+
+// Nagrywanie filmu
+document.getElementById('record-video').onclick = function() {
+  document.getElementById('video-input').click();
+};
+document.getElementById('video-input').addEventListener('change', handleFileSelect);
+
+// Wybór pliku z telefonu (galeria/menedżer plików)
+document.getElementById('choose-file').onclick = function() {
+  document.getElementById('file-input').click();
+};
+document.getElementById('file-input').addEventListener('change', handleFileSelect);
+
+function handleFileSelect(e) {
   if (e.target.files.length > 0) {
     selectedFile = e.target.files[0];
     showPreview(selectedFile);
     document.getElementById('upload-drive').disabled = false;
     document.getElementById('upload-status').innerText = '';
   }
-});
-
-// Przycisk "Zrób zdjęcie"
-document.getElementById('take-photo').onclick = function() {
-  let fileInput = document.getElementById('file-input');
-  fileInput.accept = 'image/*';
-  fileInput.capture = 'environment';
-  fileInput.click();
-};
-
-// Przycisk "Nagraj film"
-document.getElementById('record-video').onclick = function() {
-  let fileInput = document.getElementById('file-input');
-  fileInput.accept = 'video/*';
-  fileInput.capture = 'user';
-  fileInput.click();
-};
+}
 
 // Podgląd pliku
 function showPreview(file) {
