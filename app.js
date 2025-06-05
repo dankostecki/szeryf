@@ -10,11 +10,7 @@ window.onGoogleLogin = function(response) {
   resetMediaScreen();
 };
 
-// ======= WYLOGOWANIE =======
-document.getElementById('logout').onclick = function() {
-  showScreen('login');
-  resetMediaScreen();
-};
+
 
 // ======= WYBÓR I PODGLĄD PLIKÓW =======
 let selectedFile = null;
@@ -32,22 +28,68 @@ function resetMediaScreen() {
 }
 
 // ======= PROSTE PRZYCISKI - BEZ KOMPLIKACJI =======
-document.getElementById('take-photo').onclick = function() {
-  document.getElementById('photo-input').click();
-};
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('take-photo').onclick = function() {
+    document.getElementById('photo-input').click();
+  };
+  
+  document.getElementById('record-video').onclick = function() {
+    document.getElementById('video-input').click();
+  };
 
-document.getElementById('record-video').onclick = function() {
-  document.getElementById('video-input').click();
-};
+  document.getElementById('choose-file').onclick = function() {
+    document.getElementById('file-input').click();
+  };
 
-document.getElementById('choose-file').onclick = function() {
-  document.getElementById('file-input').click();
-};
+  document.getElementById('logout').onclick = function() {
+    showScreen('login');
+    resetMediaScreen();
+  };
 
-// Event listenery
-document.getElementById('photo-input').addEventListener('change', handleFileSelect);
-document.getElementById('video-input').addEventListener('change', handleFileSelect);
-document.getElementById('file-input').addEventListener('change', handleFileSelect);
+  // Upload button
+  document.getElementById('upload-drive').onclick = function() {
+    if (!selectedFile) return;
+
+    getAccessToken(function(token) {
+      const now = new Date();
+      const folderName = `szeryf_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
+
+      document.getElementById('upload-status').innerText = "Tworzę folder na Drive...";
+      document.getElementById('progress-bar').style.display = 'none';
+
+      createDriveFolder(token, folderName).then(folderId => {
+        return shareFolderAnyone(token, folderId).then(() => folderId);
+      }).then(folderId => {
+        document.getElementById('upload-status').innerText = "Przesyłam plik...";
+        document.getElementById('progress-bar').style.display = 'block';
+        document.getElementById('progress-bar-inner').style.width = '0%';
+
+        uploadFileToDrive(token, selectedFile, folderId, (progress) => {
+          document.getElementById('progress-bar-inner').style.width = `${progress}%`;
+        }).then(resp => {
+          // UPROSZCZONE: zawsze użyj folderId
+          const folderLink = `https://drive.google.com/drive/folders/${folderId}`;
+          document.getElementById('upload-status').innerHTML =
+            `✅ Plik wrzucony na Drive!<br>
+            <a href="${folderLink}" target="_blank">Kliknij, by zobaczyć folder (dostępny dla każdego z linkiem)</a>`;
+          resetMediaScreen();
+        }).catch(err => {
+          document.getElementById('upload-status').innerText = "❌ Błąd uploadu: " + err;
+          document.getElementById('progress-bar').style.display = 'none';
+        });
+      }).catch(err => {
+        document.getElementById('upload-status').innerText = "❌ Błąd tworzenia folderu: " + err;
+      });
+    });
+  };
+
+  // Event listenery dla inputów
+  document.getElementById('photo-input').addEventListener('change', handleFileSelect);
+  document.getElementById('video-input').addEventListener('change', handleFileSelect);
+  document.getElementById('file-input').addEventListener('change', handleFileSelect);
+});
+
+
 
 function handleFileSelect(e) {
   if (e.target.files.length > 0) {
@@ -92,41 +134,7 @@ function getAccessToken(callback) {
   }).requestAccessToken();
 }
 
-document.getElementById('upload-drive').onclick = function() {
-  if (!selectedFile) return;
 
-  getAccessToken(function(token) {
-    const now = new Date();
-    const folderName = `szeryf_${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
-
-    document.getElementById('upload-status').innerText = "Tworzę folder na Drive...";
-    document.getElementById('progress-bar').style.display = 'none';
-
-    createDriveFolder(token, folderName).then(folderId => {
-      return shareFolderAnyone(token, folderId).then(() => folderId);
-    }).then(folderId => {
-      document.getElementById('upload-status').innerText = "Przesyłam plik...";
-      document.getElementById('progress-bar').style.display = 'block';
-      document.getElementById('progress-bar-inner').style.width = '0%';
-
-      uploadFileToDrive(token, selectedFile, folderId, (progress) => {
-        document.getElementById('progress-bar-inner').style.width = `${progress}%`;
-      }).then(resp => {
-        // UPROSZCZONE: zawsze użyj folderId
-        const folderLink = `https://drive.google.com/drive/folders/${folderId}`;
-        document.getElementById('upload-status').innerHTML =
-          `✅ Plik wrzucony na Drive!<br>
-          <a href="${folderLink}" target="_blank">Kliknij, by zobaczyć folder (dostępny dla każdego z linkiem)</a>`;
-        resetMediaScreen();
-      }).catch(err => {
-        document.getElementById('upload-status').innerText = "❌ Błąd uploadu: " + err;
-        document.getElementById('progress-bar').style.display = 'none';
-      });
-    }).catch(err => {
-      document.getElementById('upload-status').innerText = "❌ Błąd tworzenia folderu: " + err;
-    });
-  });
-};
 
 function createDriveFolder(token, folderName) {
   return fetch('https://www.googleapis.com/drive/v3/files', {
