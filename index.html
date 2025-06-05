@@ -128,11 +128,12 @@
     </form>
   </section>
 
-  <!-- Tu łatwo możesz dołożyć mapę: 
-    <div id="map" style="width:100%;height:200px;"></div> 
-    i podpiąć Leaflet/OSM – napisz, a podrzucę gotowca!
-  -->
-
   <script src="app.js"></script>
+  <script>
+    window.onerror = function(msg, url, line, col, error) {
+      document.body.innerHTML = '<div style="color:red;background:#fff;padding:2em;font-size:1.2em;">Błąd JavaScript:<br>' + msg + '<br>' + (error ? error.stack : '') + '</div>';
+      return false;
+    }
+  </script>
 </body>
 </html>
