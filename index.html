@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Szeryf - Logowanie Google</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    section { display: none; }
+    section.active { display: block; }
+  </style>
+</head>
+<body>
+  <!-- Ekran 1: Logowanie -->
+  <section id="login" class="active">
+    <h2>Zaloguj się przez Google</h2>
+    <div id="g_id_onload"
+         data-client_id="437810978274-a5194s6ib5pgv5gjs47fknreqspiv35g.apps.googleusercontent.com"
+         data-context="signin"
+         data-ux_mode="popup"
+         data-callback="onGoogleLogin">
+    </div>
+    <div class="g_id_signin" data-type="standard"></div>
+  </section>
+  <!-- Ekran 2: Po zalogowaniu -->
+  <section id="main">
+    <h2>Jesteś zalogowany/a!</h2>
+    <button id="logout">Wyloguj</button>
+  </section>
+  <script src="app.js"></script>
+</body>
+</html>
