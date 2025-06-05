@@ -25,39 +25,18 @@ function resetMediaScreen() {
   document.getElementById('progress-bar').style.display = 'none';
   document.getElementById('progress-bar-inner').style.width = '0%';
   document.getElementById('upload-status').innerText = '';
-  document.getElementById('photo-input').value = '';
-  document.getElementById('video-input').value = '';
-  document.getElementById('file-input').value = '';
+  document.getElementById('visible-file-input').value = '';
 }
 
-// Robienie zdjęcia
-document.getElementById('take-photo').onclick = function() {
-  document.getElementById('photo-input').click();
-};
-document.getElementById('photo-input').addEventListener('change', handleFileSelect);
-
-// Nagrywanie filmu
-document.getElementById('record-video').onclick = function() {
-  document.getElementById('video-input').click();
-};
-document.getElementById('video-input').addEventListener('change', handleFileSelect);
-
-// Wybór pliku z telefonu (galeria/menedżer plików)
-document.getElementById('choose-file').onclick = function() {
-  document.getElementById('file-input').click();
-};
-document.getElementById('file-input').addEventListener('change', handleFileSelect);
-
-function handleFileSelect(e) {
+document.getElementById('visible-file-input').addEventListener('change', function(e) {
   if (e.target.files.length > 0) {
     selectedFile = e.target.files[0];
     showPreview(selectedFile);
     document.getElementById('upload-drive').disabled = false;
     document.getElementById('upload-status').innerText = '';
   }
-}
+});
 
-// Podgląd pliku
 function showPreview(file) {
   const preview = document.getElementById('preview');
   preview.innerHTML = '';
@@ -91,7 +70,7 @@ function getAccessToken(callback) {
   }).requestAccessToken();
 }
 
-// ======= UPLOAD DO DRIVE Z PROGRESSEM =======
+// ======= UPLOAD DO DRIVE Z PROGRESSEM I USTAWIENIEM UDOSTĘPNIANIA =======
 document.getElementById('upload-drive').onclick = function() {
   if (!selectedFile) return;
 
@@ -104,6 +83,9 @@ document.getElementById('upload-drive').onclick = function() {
     document.getElementById('progress-bar').style.display = 'none';
 
     createDriveFolder(token, folderName).then(folderId => {
+      // Udostępnij folder każdemu z linkiem (publicznie do podglądu)
+      return shareFolderAnyone(token, folderId).then(() => folderId);
+    }).then(folderId => {
       document.getElementById('upload-status').innerText = "Przesyłam plik...";
       document.getElementById('progress-bar').style.display = 'block';
       document.getElementById('progress-bar-inner').style.width = '0%';
@@ -111,7 +93,11 @@ document.getElementById('upload-drive').onclick = function() {
       uploadFileToDrive(token, selectedFile, folderId, (progress) => {
         document.getElementById('progress-bar-inner').style.width = `${progress}%`;
       }).then(resp => {
-        document.getElementById('upload-status').innerText = "✅ Plik wrzucony na Drive!";
+        // Po uploadzie pokaż link do folderu!
+        const folderLink = `https://drive.google.com/drive/folders/${resp.parents[0]}`;
+        document.getElementById('upload-status').innerHTML =
+          `✅ Plik wrzucony na Drive!<br>
+          <a href="${folderLink}" target="_blank">Kliknij, by zobaczyć folder (dostępny dla każdego z linkiem)</a>`;
         resetMediaScreen();
       }).catch(err => {
         document.getElementById('upload-status').innerText = "❌ Błąd uploadu: " + err;
@@ -135,6 +121,21 @@ function createDriveFolder(token, folderName) {
   })
     .then(r => r.json())
     .then(data => data.id);
+}
+
+// Upublicznienie folderu (anyone with the link can view)
+function shareFolderAnyone(token, folderId) {
+  return fetch(`https://www.googleapis.com/drive/v3/files/${folderId}/permissions`, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      role: 'reader',
+      type: 'anyone'
+    })
+  }).then(r => r.json());
 }
 
 function uploadFileToDrive(token, file, folderId, onProgress) {
