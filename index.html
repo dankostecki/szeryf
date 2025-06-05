@@ -2,11 +2,50 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <title>Szeryf - Logowanie Google</title>
+  <title>Szeryf - Upload na Google Drive</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
-    section { display: none; }
+    body { font-family: sans-serif; background: #f8f9fa; color: #222; margin: 0; padding: 0; }
+    section { max-width: 400px; margin: 4em auto; padding: 2em; background: #fff; border-radius: 10px; box-shadow: 0 2px 16px #ccc2; display: none; }
     section.active { display: block; }
+    h2 { margin-top: 0; }
+    button, input[type="file"] {
+      display: block;
+      width: 100%;
+      margin: 1em 0;
+      padding: 1em;
+      font-size: 1em;
+      border-radius: 6px;
+      border: 1px solid #cfd8dc;
+      background: #e3f2fd;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:disabled { background: #eee; color: #aaa; cursor: not-allowed; }
+    #preview img, #preview video {
+      max-width: 100%;
+      margin-top: 1em;
+      border-radius: 6px;
+      border: 1px solid #eee;
+    }
+    #progress-bar {
+      width: 100%;
+      background: #e0e0e0;
+      height: 18px;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 1em 0;
+      display: none;
+    }
+    #progress-bar-inner {
+      height: 100%;
+      background: #2196f3;
+      width: 0%;
+      transition: width 0.3s;
+    }
+    #upload-status { margin-top: 1em; font-weight: bold; min-height: 1.5em; }
   </style>
 </head>
 <body>
@@ -21,11 +60,22 @@
     </div>
     <div class="g_id_signin" data-type="standard"></div>
   </section>
-  <!-- Ekran 2: Po zalogowaniu -->
-  <section id="main">
-    <h2>Jesteś zalogowany/a!</h2>
-    <button id="logout">Wyloguj</button>
+
+  <!-- Ekran 2: Foto/Wideo/Plik -->
+  <section id="media-screen">
+    <h2>Dodaj zdjęcie lub film</h2>
+    <button id="take-photo">Zrób zdjęcie</button>
+    <button id="record-video">Nagraj film</button>
+    <input type="file" id="file-input" accept="image/*,video/*" capture>
+    <div id="preview"></div>
+    <div id="progress-bar">
+      <div id="progress-bar-inner"></div>
+    </div>
+    <button id="upload-drive" disabled>Wyślij na Drive</button>
+    <div id="upload-status"></div>
+    <button id="logout" style="background:#ffecb3; color:#222; border:1px solid #ffe082;">Wyloguj</button>
   </section>
+
   <script src="app.js"></script>
 </body>
 </html>
