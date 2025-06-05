@@ -62,10 +62,11 @@ document.addEventListener('DOMContentLoaded', function() {
   };
   document.getElementById('incident-form').onsubmit = function(e) {
     e.preventDefault();
-    // Tu możesz zapisać dane formularza do pliku na Drive, wysłać dalej lub przełączyć na kolejny ekran
-    alert('Tytuł: ' + document.getElementById('incident-title').value +
+    alert(
+      'Tytuł: ' + document.getElementById('incident-title').value +
       '\nOpis: ' + document.getElementById('incident-description').value +
-      '\nLokalizacja: ' + document.getElementById('incident-location').value);
+      '\nLokalizacja: ' + document.getElementById('incident-location').value
+    );
   };
 });
 
@@ -137,17 +138,26 @@ function removeFile(index) {
 
 // Pasek postępu w obu sekcjach
 function updateProgressBar(percent) {
-  document.getElementById('progress-bar-inner').style.width = percent + '%';
-  document.getElementById('progress-bar-inner-form').style.width = percent + '%';
+  let el1 = document.getElementById('progress-bar-inner');
+  let el2 = document.getElementById('progress-bar-inner-form');
+  if (el1) el1.style.width = percent + '%';
+  if (el2) el2.style.width = percent + '%';
 }
 
-// Skopiuj preview kafelków do formularza (bez kasowania)
+// Skopiuj preview kafelków do formularza (bez kasowania) — bezpiecznie!
 function copyEvidencePreviewToForm() {
-  const src = document.querySelector('#preview .preview-grid');
-  const dest = document.getElementById('evidence-preview');
-  if (src && dest) {
-    dest.innerHTML = src.outerHTML;
-    dest.querySelectorAll('.delete-btn').forEach(btn => btn.remove());
+  try {
+    const src = document.querySelector('#preview .preview-grid');
+    const dest = document.getElementById('evidence-preview');
+    if (src && dest) {
+      dest.innerHTML = src.outerHTML;
+      dest.querySelectorAll('.delete-btn').forEach(btn => btn.remove());
+    } else if (dest) {
+      dest.innerHTML = '<em>Brak podglądu plików</em>';
+    }
+  } catch (e) {
+    const dest = document.getElementById('evidence-preview');
+    if (dest) dest.innerHTML = '<em>Błąd wyświetlania podglądu</em>';
   }
 }
 
