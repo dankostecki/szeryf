@@ -10,13 +10,11 @@ window.onGoogleLogin = function(response) {
   resetMediaScreen();
 };
 
-
-
-// ======= WYBÓR I PODGLĄD PLIKÓW =======
-let selectedFile = null;
+// ======= WYBÓR I PODGLĄD PLIKÓW - ROZSZERZONE =======
+let selectedFiles = []; // ZMIANA: teraz array zamiast pojedynczego pliku
 
 function resetMediaScreen() {
-  selectedFile = null;
+  selectedFiles = []; // ZMIANA: czyszczenie array
   document.getElementById('preview').innerHTML = '';
   document.getElementById('upload-drive').disabled = true;
   document.getElementById('progress-bar').style.display = 'none';
@@ -46,9 +44,9 @@ document.addEventListener('DOMContentLoaded', function() {
     resetMediaScreen();
   };
 
-  // Upload button
+  // Upload button - ZMIENIONY dla wielu plików
   document.getElementById('upload-drive').onclick = function() {
-    if (!selectedFile) return;
+    if (selectedFiles.length === 0) return;
 
     getAccessToken(function(token) {
       const now = new Date();
@@ -60,17 +58,17 @@ document.addEventListener('DOMContentLoaded', function() {
       createDriveFolder(token, folderName).then(folderId => {
         return shareFolderAnyone(token, folderId).then(() => folderId);
       }).then(folderId => {
-        document.getElementById('upload-status').innerText = "Przesyłam plik...";
+        document.getElementById('upload-status').innerText = `Przesyłam pliki (${selectedFiles.length})...`;
         document.getElementById('progress-bar').style.display = 'block';
         document.getElementById('progress-bar-inner').style.width = '0%';
 
-        uploadFileToDrive(token, selectedFile, folderId, (progress) => {
+        // NOWA FUNKCJA: upload wielu plików
+        uploadMultipleFilesToDrive(token, selectedFiles, folderId, (progress) => {
           document.getElementById('progress-bar-inner').style.width = `${progress}%`;
         }).then(resp => {
-          // UPROSZCZONE: zawsze użyj folderId
           const folderLink = `https://drive.google.com/drive/folders/${folderId}`;
           document.getElementById('upload-status').innerHTML =
-            `✅ Plik wrzucony na Drive!<br>
+            `✅ Wszystkie pliki (${selectedFiles.length}) wrzucone na Drive!<br>
             <a href="${folderLink}" target="_blank">Kliknij, by zobaczyć folder (dostępny dla każdego z linkiem)</a>`;
           resetMediaScreen();
         }).catch(err => {
@@ -89,37 +87,129 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('file-input').addEventListener('change', handleFileSelect);
 });
 
-
-
+// ZMIENIONA FUNKCJA: dodaje do array zamiast zastępować
 function handleFileSelect(e) {
   if (e.target.files.length > 0) {
-    selectedFile = e.target.files[0];
-    showPreview(selectedFile);
-    document.getElementById('upload-drive').disabled = false;
-    document.getElementById('upload-status').innerText = '';
+    // Dodaj wszystkie wybrane pliki do array
+    for (let i = 0; i < e.target.files.length; i++) {
+      selectedFiles.push(e.target.files[i]);
+    }
+    
+    showPreviewGrid(); // NOWA FUNKCJA: siatka kafelków
+    document.getElementById('upload-drive').disabled = selectedFiles.length === 0;
+    document.getElementById('upload-status').innerText = `Wybrano ${selectedFiles.length} plik(ów)`;
+    
+    // Wyczyść input żeby można było dodać ten sam plik ponownie
+    e.target.value = '';
   }
 }
 
-function showPreview(file) {
+// NOWA FUNKCJA: wyświetla pliki jako siatkę kafelków
+function showPreviewGrid() {
   const preview = document.getElementById('preview');
   preview.innerHTML = '';
   
-  if (file.type.startsWith('image/')) {
-    const img = document.createElement('img');
-    img.src = URL.createObjectURL(file);
-    preview.appendChild(img);
-  } else if (file.type.startsWith('video/')) {
-    const video = document.createElement('video');
-    video.src = URL.createObjectURL(file);
-    video.controls = true;
-    video.style.maxHeight = '240px';
-    preview.appendChild(video);
-  } else {
-    preview.innerText = file.name;
+  if (selectedFiles.length === 0) {
+    return;
   }
+  
+  // Kontener siatki
+  const grid = document.createElement('div');
+  grid.className = 'preview-grid';
+  
+  selectedFiles.forEach((file, index) => {
+    const tile = document.createElement('div');
+    tile.className = 'preview-tile';
+    
+    // Przycisk usuwania
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-btn';
+    deleteBtn.innerHTML = '×';
+    deleteBtn.onclick = (e) => {
+      e.preventDefault();
+      removeFile(index);
+    };
+    
+    // Podgląd pliku
+    const filePreview = document.createElement('div');
+    filePreview.className = 'file-content';
+    
+    if (file.type.startsWith('image/')) {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      filePreview.appendChild(img);
+    } else if (file.type.startsWith('video/')) {
+      const video = document.createElement('video');
+      video.src = URL.createObjectURL(file);
+      video.muted = true;
+      video.preload = 'metadata';
+      filePreview.appendChild(video);
+    } else {
+      const fileIcon = document.createElement('div');
+      fileIcon.className = 'file-icon';
+      fileIcon.innerHTML = '📄';
+      filePreview.appendChild(fileIcon);
+    }
+    
+    // Nazwa pliku
+    const fileName = document.createElement('div');
+    fileName.className = 'file-name';
+    fileName.textContent = file.name;
+    
+    tile.appendChild(deleteBtn);
+    tile.appendChild(filePreview);
+    tile.appendChild(fileName);
+    grid.appendChild(tile);
+  });
+  
+  preview.appendChild(grid);
 }
 
-// ======= GOOGLE DRIVE UPLOAD =======
+// NOWA FUNKCJA: usuwa plik z listy
+function removeFile(index) {
+  selectedFiles.splice(index, 1);
+  showPreviewGrid();
+  document.getElementById('upload-drive').disabled = selectedFiles.length === 0;
+  document.getElementById('upload-status').innerText = selectedFiles.length > 0 ? `Wybrano ${selectedFiles.length} plik(ów)` : '';
+}
+
+// NOWA FUNKCJA: upload wielu plików
+function uploadMultipleFilesToDrive(token, files, folderId, onProgress) {
+  return new Promise((resolve, reject) => {
+    let uploadedCount = 0;
+    let errors = [];
+    
+    const uploadNext = (index) => {
+      if (index >= files.length) {
+        if (errors.length > 0) {
+          reject(`Błędy przy ${errors.length} plikach: ${errors.join(', ')}`);
+        } else {
+          resolve(`Przesłano ${uploadedCount} plików`);
+        }
+        return;
+      }
+      
+      const file = files[index];
+      uploadFileToDrive(token, file, folderId, () => {
+        // Progress dla pojedynczego pliku - przelicz na całość
+        const overallProgress = Math.round(((index + 0.5) / files.length) * 100);
+        onProgress(overallProgress);
+      }).then(() => {
+        uploadedCount++;
+        const overallProgress = Math.round(((index + 1) / files.length) * 100);
+        onProgress(overallProgress);
+        uploadNext(index + 1);
+      }).catch(err => {
+        errors.push(file.name);
+        uploadNext(index + 1);
+      });
+    };
+    
+    uploadNext(0);
+  });
+}
+
+// ======= GOOGLE DRIVE UPLOAD - ZACHOWANE FUNKCJE =======
 let accessToken = null;
 
 function getAccessToken(callback) {
@@ -133,8 +223,6 @@ function getAccessToken(callback) {
     },
   }).requestAccessToken();
 }
-
-
 
 function createDriveFolder(token, folderName) {
   return fetch('https://www.googleapis.com/drive/v3/files', {
