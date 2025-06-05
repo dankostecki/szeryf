@@ -2,198 +2,720 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <title>Szeryf - Upload na Google Drive</title>
+  <title>Szeryf - System zgłaszania incydentów</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
-    body { font-family: sans-serif; background: #f8f9fa; color: #222; margin: 0; padding: 0; }
-    section { max-width: 500px; margin: 4em auto; padding: 2em; background: #fff; border-radius: 10px; box-shadow: 0 2px 16px #ccc2; display: none; }
-    section.active { display: block; }
-    h2 { margin-top: 0; }
-    button {
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+      background: #f5f5f5; 
+      color: #333; 
+      line-height: 1.5;
+    }
+    
+    /* GLOBALNY PASEK POSTĘPU */
+    #global-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 1000;
+      display: none;
+      padding: 15px 20px;
+    }
+    
+    #global-progress.show {
       display: block;
+    }
+    
+    #progress-bar-global {
       width: 100%;
-      margin: 1em 0;
-      padding: 1em;
-      font-size: 1em;
-      border-radius: 6px;
-      border: 1px solid #cfd8dc;
-      background: #e3f2fd;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    button:disabled { background: #eee; color: #aaa; cursor: not-allowed; }
-    button:hover:not(:disabled) { background: #bbdefb; }
-    
-    /* NOWE STYLE DLA SIATKI KAFELKÓW */
-    .preview-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin: 1.5em 0;
+      background: #e1e5e9;
+      height: 4px;
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 8px 0;
     }
     
-    .preview-tile {
+    #progress-bar-inner-global {
+      height: 100%;
+      background: #4285f4;
+      width: 0%;
+      transition: width 0.3s;
+    }
+    
+    #upload-status-global {
+      font-size: 14px;
+      color: #5f6368;
+    }
+    
+    /* KONTENER GŁÓWNY */
+    .container {
+      max-width: 400px;
+      margin: 40px auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    
+    body.upload-active .container {
+      margin-top: 120px;
+    }
+    
+    /* EKRANY */
+    section {
+      display: none;
+      padding: 24px;
+    }
+    
+    section.active {
+      display: block;
+    }
+    
+    /* NAGŁÓWKI */
+    .screen-header {
+      margin-bottom: 8px;
+    }
+    
+    .screen-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #202124;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .screen-subtitle {
+      font-size: 16px;
+      color: #5f6368;
+      margin-top: 4px;
+    }
+    
+    /* OBSZAR PRZECHWYTYWANIA */
+    .capture-area {
+      background: #37474f;
+      border-radius: 8px;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 24px 0;
       position: relative;
-      background: #f5f5f5;
+    }
+    
+    .capture-icon {
+      width: 60px;
+      height: 60px;
+      border: 3px solid #78909c;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: #78909c;
+    }
+    
+    .capture-icon::before {
+      content: "📷";
+      filter: grayscale(1);
+    }
+    
+    /* PRZYCISKI */
+    .btn {
+      width: 100%;
+      padding: 16px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      background: white;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin: 8px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .btn:hover:not(:disabled) {
+      border-color: #1a73e8;
+      color: #1a73e8;
+    }
+    
+    .btn:disabled {
+      background: #f8f9fa;
+      color: #9aa0a6;
+      cursor: not-allowed;
+      border-color: #e8eaed;
+    }
+    
+    .btn-primary {
+      background: #1a73e8;
+      color: white;
+      border-color: #1a73e8;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background: #1557b0;
+    }
+    
+    .btn-outline {
+      background: white;
+      color: #1a73e8;
+      border-color: #1a73e8;
+    }
+    
+    .btn-secondary {
+      background: #f8f9fa;
+      color: #5f6368;
+      border-color: #dadce0;
+    }
+    
+    /* MEDIA PREVIEW */
+    .media-section {
+      margin: 24px 0;
+    }
+    
+    .media-count {
+      font-size: 16px;
+      color: #5f6368;
+      margin-bottom: 16px;
+      display: none;
+    }
+    
+    .media-preview {
+      display: none;
+    }
+    
+    .media-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    
+    .media-tile {
+      position: relative;
+      aspect-ratio: 1;
       border-radius: 8px;
       overflow: hidden;
-      border: 2px solid #e0e0e0;
-      aspect-ratio: 1;
+      background: #6b46c1;
     }
     
-    .delete-btn {
+    .delete-media-btn {
       position: absolute;
-      top: 5px;
-      right: 5px;
-      width: 25px;
-      height: 25px;
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
-      background: rgba(244, 67, 54, 0.9);
+      background: rgba(0,0,0,0.6);
       color: white;
       border: none;
-      font-size: 14px;
-      font-weight: bold;
+      font-size: 16px;
       cursor: pointer;
       z-index: 10;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0;
-      margin: 0;
     }
     
-    .delete-btn:hover {
-      background: #f44336;
-      transform: scale(1.1);
-    }
-    
-    .file-content {
+    .media-content {
       width: 100%;
-      height: calc(100% - 30px);
+      height: calc(100% - 40px);
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
     }
     
-    .file-content img,
-    .file-content video {
+    .media-content img,
+    .media-content video {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
     
-    .file-icon {
-      font-size: 2em;
-      opacity: 0.6;
+    .file-placeholder {
+      color: white;
+      font-weight: bold;
     }
     
-    .file-name {
+    .media-label {
       position: absolute;
       bottom: 0;
       left: 0;
       right: 0;
-      background: rgba(0,0,0,0.7);
+      background: #6b46c1;
       color: white;
-      padding: 4px 6px;
-      font-size: 10px;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      white-space: nowrap;
+      text-align: center;
+      padding: 8px;
+      font-size: 14px;
+      font-weight: 600;
     }
     
-    /* RESPONSYWNOŚĆ */
-    @media (max-width: 400px) {
-      .preview-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
+    /* FORMULARZ */
+    .form-group {
+      margin: 20px 0;
     }
     
-    /* POZOSTAŁE STYLE ZACHOWANE */
-    #preview img, #preview video {
-      max-width: 100%;
-      margin-top: 1em;
-      border-radius: 6px;
-      border: 1px solid #eee;
+    .form-label {
+      display: block;
+      font-size: 16px;
+      font-weight: 500;
+      color: #202124;
+      margin-bottom: 8px;
     }
-    #progress-bar {
+    
+    .form-input {
       width: 100%;
-      background: #e0e0e0;
-      height: 18px;
-      border-radius: 10px;
-      overflow: hidden;
-      margin: 1em 0;
-      display: none;
+      padding: 12px 16px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      font-size: 16px;
+      font-family: inherit;
+      background: white;
+      transition: border-color 0.2s;
     }
-    #progress-bar-inner {
-      height: 100%;
-      background: #2196f3;
-      width: 0%;
-      transition: width 0.3s;
-    }
-    #upload-status { margin-top: 1em; font-weight: bold; min-height: 1.5em; }
     
-    /* UKRYTE INPUTY - NAPRAWDĘ UKRYTE */
-    .hidden-input { 
-      position: absolute; 
-      left: -9999px; 
-      opacity: 0; 
-      width: 1px; 
+    .form-input:focus {
+      outline: none;
+      border-color: #1a73e8;
+    }
+    
+    .form-input::placeholder {
+      color: #9aa0a6;
+    }
+    
+    .form-textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    
+    .location-input {
+      position: relative;
+    }
+    
+    .location-input::before {
+      content: "📍";
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      filter: grayscale(1);
+    }
+    
+    .location-input input {
+      padding-left: 40px;
+    }
+    
+    /* DOWODY W FORMULARZU */
+    .evidence-section {
+      margin: 20px 0;
+    }
+    
+    .evidence-count {
+      font-size: 16px;
+      font-weight: 500;
+      color: #202124;
+      margin-bottom: 12px;
+    }
+    
+    .evidence-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    
+    .evidence-tile {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #6b46c1;
+    }
+    
+    .evidence-tile img {
+      width: 100%;
+      height: calc(100% - 40px);
+      object-fit: cover;
+    }
+    
+    .video-placeholder,
+    .file-placeholder {
+      width: 100%;
+      height: calc(100% - 40px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+    
+    .evidence-label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #6b46c1;
+      color: white;
+      text-align: center;
+      padding: 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    /* RADIO BUTTONS */
+    .radio-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 16px 0;
+    }
+    
+    .radio-option {
+      position: relative;
+    }
+    
+    .radio-option input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+    }
+    
+    .radio-option label {
+      display: block;
+      padding: 16px;
+      border: 2px solid #dadce0;
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+    
+    .radio-option input[type="radio"]:checked + label {
+      border-color: #1a73e8;
+      background: #e8f0fe;
+      color: #1a73e8;
+    }
+    
+    .radio-option input[type="radio"]:checked + label::before {
+      content: "●";
+      margin-right: 8px;
+    }
+    
+    /* SELECT */
+    .form-select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      font-size: 16px;
+      background: white;
+      cursor: pointer;
+    }
+    
+    /* POTWIERDZENIE */
+    .confirmation-icon {
+      width: 80px;
+      height: 80px;
+      background: #e8f5e8;
+      border-radius: 50%;
+      margin: 40px auto 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .confirmation-icon::before {
+      content: "✓";
+      font-size: 40px;
+      color: #34a853;
+    }
+    
+    .confirmation-title {
+      font-size: 28px;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    
+    .confirmation-subtitle {
+      text-align: center;
+      color: #5f6368;
+      margin-bottom: 32px;
+    }
+    
+    .summary-section {
+      margin: 24px 0;
+      padding: 16px 0;
+      border-top: 1px solid #e8eaed;
+    }
+    
+    .summary-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #202124;
+      margin-bottom: 8px;
+    }
+    
+    .summary-content {
+      color: #5f6368;
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+    
+    /* UKRYTE INPUTY */
+    .hidden-input {
+      position: absolute;
+      left: -9999px;
+      opacity: 0;
+      width: 1px;
       height: 1px;
       visibility: hidden;
     }
     
-    .error {
-      background: #ffebee;
-      color: #c62828;
-      padding: 15px;
-      border-radius: 5px;
-      margin: 10px 0;
+    /* RESPONSYWNOŚĆ */
+    @media (max-width: 480px) {
+      .container {
+        margin: 20px 16px;
+        border-radius: 8px;
+      }
+      
+      .media-grid,
+      .evidence-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .radio-group {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
-  <!-- Ekran 1: Logowanie -->
-  <section id="login" class="active">
-    <h2>Zaloguj się przez Google</h2>
-    <div id="g_id_onload"
-         data-client_id="437810978274-a5194s6ib5pgv5gjs47fknreqspiv35g.apps.googleusercontent.com"
-         data-context="signin"
-         data-ux_mode="popup"
-         data-callback="onGoogleLogin">
+  <!-- GLOBALNY PASEK POSTĘPU -->
+  <div id="global-progress">
+    <div id="upload-status-global"></div>
+    <div id="progress-bar-global">
+      <div id="progress-bar-inner-global"></div>
     </div>
-    <div class="g_id_signin" data-type="standard"></div>
-  </section>
+  </div>
 
-  <!-- Ekran 2: Wybór pliku i upload -->
-  <section id="media-screen">
-    <h2>Dodaj zdjęcia i filmy</h2>
-    
-    <!-- PROSTE PRZYCISKI -->
-    <button id="take-photo">📸 Zrób zdjęcie</button>
-    <button id="record-video">🎥 Nagraj film</button>
-    <button id="choose-file">📁 Wybierz pliki z telefonu</button>
-    
-    <!-- NAPRAWDĘ UKRYTE INPUTY -->
-    <input type="file" id="photo-input" accept="image/*" capture="environment" class="hidden-input">
-    <input type="file" id="video-input" accept="video/*" capture="user" class="hidden-input">
-    <input type="file" id="file-input" accept="image/*,video/*" multiple class="hidden-input">
-    
-    <!-- Podgląd jako siatka kafelków -->
-    <div id="preview"></div>
-    
-    <!-- Upload -->
-    <div id="progress-bar">
-      <div id="progress-bar-inner"></div>
-    </div>
-    <button id="upload-drive" disabled>Wyślij wszystkie na Drive</button>
-    <div id="upload-status"></div>
-    
-    <!-- Wylogowanie -->
-    <button id="logout" style="background:#ffecb3; color:#222; border:1px solid #ffe082;">Wyloguj</button>
-  </section>
+  <div class="container">
+    <!-- EKRAN 1: Logowanie -->
+    <section id="login" class="active">
+      <div class="screen-header">
+        <h1 class="screen-title">Szeryf</h1>
+        <p class="screen-subtitle">System zgłaszania incydentów</p>
+      </div>
+      
+      <div style="margin: 40px 0;">
+        <div id="g_id_onload"
+             data-client_id="437810978274-a5194s6ib5pgv5gjs47fknreqspiv35g.apps.googleusercontent.com"
+             data-context="signin"
+             data-ux_mode="popup"
+             data-callback="onGoogleLogin">
+        </div>
+        <div class="g_id_signin" data-type="standard"></div>
+      </div>
+    </section>
+
+    <!-- EKRAN 2: Capture Evidence -->
+    <section id="capture-evidence">
+      <div class="screen-header">
+        <h2 class="screen-title">
+          <span style="font-size: 20px;">📷</span>
+          Capture Evidence
+        </h2>
+        <p class="screen-subtitle">Take photos or record video of the incident</p>
+      </div>
+      
+      <div class="capture-area">
+        <div class="capture-icon"></div>
+      </div>
+      
+      <div class="media-section">
+        <div id="media-count" class="media-count"></div>
+        <div id="media-preview" class="media-preview">
+          <div class="media-grid"></div>
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 24px 0;">
+        <button id="photo-btn" class="btn btn-outline">
+          <span>📷</span> Photo
+        </button>
+        <button id="video-btn" class="btn btn-outline">
+          <span>🎥</span> Video
+        </button>
+      </div>
+      
+      <button id="continue-to-report" class="btn btn-primary" disabled>
+        Continue to Report →
+      </button>
+      
+      <!-- UKRYTE INPUTY -->
+      <input type="file" id="photo-input" accept="image/*" capture="environment" class="hidden-input">
+      <input type="file" id="video-input" accept="video/*" capture="user" class="hidden-input">
+    </section>
+
+    <!-- EKRAN 3: Incident Details -->
+    <section id="incident-details">
+      <div class="screen-header">
+        <h2 class="screen-title">
+          <span style="font-size: 20px;">🛡️</span>
+          Incident Details
+        </h2>
+        <p class="screen-subtitle">Provide details about what happened</p>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="incident-title">Incident Title</label>
+        <input 
+          type="text" 
+          id="incident-title" 
+          class="form-input"
+          placeholder="e.g. Suspicious activity, Traffic accident"
+        >
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="incident-description">Description</label>
+        <textarea 
+          id="incident-description" 
+          class="form-input form-textarea"
+          placeholder="Describe what happened in detail..."
+        ></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="location-input">Location</label>
+        <div class="location-input">
+          <input 
+            type="text" 
+            id="location-input" 
+            class="form-input"
+            placeholder="Where did this happen?"
+          >
+        </div>
+      </div>
+      
+      <div class="evidence-section">
+        <div id="evidence-count" class="evidence-count">Your Evidence (0)</div>
+        <div id="evidence-grid" class="evidence-grid"></div>
+      </div>
+      
+      <button id="continue-to-recipient" class="btn btn-primary">
+        Continue to Recipient →
+      </button>
+    </section>
+
+    <!-- EKRAN 4: Send Report To -->
+    <section id="send-report">
+      <div class="screen-header">
+        <h2 class="screen-title">
+          <span style="font-size: 20px;">✉️</span>
+          Send Report To
+        </h2>
+        <p class="screen-subtitle">Select which police department should receive this report</p>
+      </div>
+      
+      <div style="margin: 24px 0;">
+        <div class="form-label">Recipient Type</div>
+        <div class="radio-group">
+          <div class="radio-option">
+            <input type="radio" id="police-dept" name="recipient" value="police" checked>
+            <label for="police-dept">Police Department</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="custom-email" name="recipient" value="custom">
+            <label for="custom-email">Custom Email</label>
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Select Police Department</label>
+        <select class="form-select">
+          <option>Choose a department</option>
+          <option selected>Komenda Północna</option>
+          <option>Komenda Południowa</option>
+          <option>Komenda Centralna</option>
+        </select>
+      </div>
+      
+      <button id="send-report-btn" class="btn btn-primary">
+        Send Report
+      </button>
+    </section>
+
+    <!-- EKRAN 5: Report Submitted -->
+    <section id="report-submitted">
+      <div class="confirmation-icon"></div>
+      
+      <h2 class="confirmation-title">Report Submitted</h2>
+      <p class="confirmation-subtitle">Your report has been successfully sent to the police department</p>
+      
+      <div class="summary-section">
+        <div class="summary-title">Sent To</div>
+        <div id="sent-to-name" class="summary-content">North District Station</div>
+        <div id="sent-to-email" class="summary-content">north@police.gov.pl</div>
+      </div>
+      
+      <div class="summary-section">
+        <div class="summary-title">Report Summary</div>
+        <div id="report-title-summary" class="summary-content">test</div>
+        <div id="report-location-summary" class="summary-content">warsaw</div>
+      </div>
+      
+      <div class="summary-section">
+        <div class="summary-title">Evidence Attached</div>
+        <div id="attached-evidence-grid" class="evidence-grid"></div>
+      </div>
+      
+      <button id="submit-another" class="btn btn-secondary" style="margin-top: 32px;">
+        Submit Another Report
+      </button>
+    </section>
+  </div>
+  
+  <button id="logout" style="position: fixed; top: 20px; right: 20px; padding: 8px 16px; background: #f8f9fa; border: 1px solid #dadce0; border-radius: 20px; font-size: 14px; cursor: pointer;">
+    Wyloguj
+  </button>
   
   <script src="app.js"></script>
+  
+  <script>
+    // Pokaż globalny pasek gdy upload jest aktywny
+    function updateGlobalProgress() {
+      const globalProgress = document.getElementById('global-progress');
+      const progressBar = document.getElementById('progress-bar-global');
+      
+      if (progressBar.style.display === 'block') {
+        globalProgress.classList.add('show');
+        document.body.classList.add('upload-active');
+      } else {
+        globalProgress.classList.remove('show');
+        document.body.classList.remove('upload-active');
+      }
+    }
+    
+    // Obserwuj zmiany w pasku postępu
+    const observer = new MutationObserver(updateGlobalProgress);
+    observer.observe(document.getElementById('progress-bar-global'), {
+      attributes: true,
+      attributeFilter: ['style']
+    });
+  </script>
 </body>
 </html>
