@@ -61,18 +61,14 @@
     <div class="g_id_signin" data-type="standard"></div>
   </section>
 
-  <!-- Ekran 2: Foto/Wideo/Plik -->
+  <!-- Ekran 2: Wybór pliku i upload -->
   <section id="media-screen">
     <h2>Dodaj zdjęcie lub film</h2>
 
-    <button id="take-photo">Zrób zdjęcie</button>
-    <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none;">
-
-    <button id="record-video">Nagraj film</button>
-    <input type="file" id="video-input" accept="video/*" capture="user" style="display:none;">
-
-    <button id="choose-file">Dodaj zdjęcie/film z telefonu</button>
-    <input type="file" id="file-input" accept="image/*,video/*" style="display:none;">
+    <label for="visible-file-input" style="display:block; margin:1em 0; font-weight:600;">
+      Wybierz zdjęcie lub film z telefonu:
+    </label>
+    <input type="file" id="visible-file-input" accept="image/*,video/*">
 
     <div id="preview"></div>
     <div id="progress-bar">
