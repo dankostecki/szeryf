@@ -24,18 +24,15 @@
     }
     button:disabled { background: #eee; color: #aaa; cursor: not-allowed; }
     button:hover:not(:disabled) { background: #bbdefb; }
-    label { display:block; margin: 0.8em 0 0.3em; }
-    input[type="text"], textarea {
-      width: 100%; padding: 0.7em; margin: 0.2em 0;
-      border: 1px solid #cfd8dc; border-radius: 6px; font-size:1em;
-      box-sizing: border-box;
-    }
+    
+    /* NOWE STYLE DLA SIATKI KAFELKÓW */
     .preview-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
       margin: 1.5em 0;
     }
+    
     .preview-tile {
       position: relative;
       background: #f5f5f5;
@@ -44,28 +41,116 @@
       border: 2px solid #e0e0e0;
       aspect-ratio: 1;
     }
+    
     .delete-btn {
-      position: absolute; top: 5px; right: 5px;
-      width: 25px; height: 25px; border-radius: 50%;
-      background: rgba(244, 67, 54, 0.9); color: white;
-      border: none; font-size: 14px; font-weight: bold; cursor: pointer;
-      z-index: 10; display: flex; align-items: center; justify-content: center; padding: 0; margin: 0;
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      background: rgba(244, 67, 54, 0.9);
+      color: white;
+      border: none;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      margin: 0;
     }
-    .delete-btn:hover { background: #f44336; transform: scale(1.1);}
-    .file-content { width: 100%; height: calc(100% - 30px); display: flex; align-items: center; justify-content: center; overflow: hidden;}
-    .file-content img, .file-content video { width: 100%; height: 100%; object-fit: cover;}
-    .file-icon { font-size: 2em; opacity: 0.6; }
-    .file-name { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: white; padding: 4px 6px; font-size: 10px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;}
-    @media (max-width: 400px) { .preview-grid { grid-template-columns: repeat(2, 1fr); } }
-    .hidden-input { position: absolute; left: -9999px; opacity: 0; width: 1px; height: 1px; visibility: hidden;}
-    #progress-bar, #progress-bar-form {
-      width: 100%; background: #e0e0e0; height: 18px; border-radius: 10px; overflow: hidden; margin: 1em 0; display: none;
+    
+    .delete-btn:hover {
+      background: #f44336;
+      transform: scale(1.1);
     }
-    #progress-bar-inner, #progress-bar-inner-form {
-      height: 100%; background: #2196f3; width: 0%; transition: width 0.3s;
+    
+    .file-content {
+      width: 100%;
+      height: calc(100% - 30px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    
+    .file-content img,
+    .file-content video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .file-icon {
+      font-size: 2em;
+      opacity: 0.6;
+    }
+    
+    .file-name {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 4px 6px;
+      font-size: 10px;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    
+    /* RESPONSYWNOŚĆ */
+    @media (max-width: 400px) {
+      .preview-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    /* POZOSTAŁE STYLE ZACHOWANE */
+    #preview img, #preview video {
+      max-width: 100%;
+      margin-top: 1em;
+      border-radius: 6px;
+      border: 1px solid #eee;
+    }
+    #progress-bar {
+      width: 100%;
+      background: #e0e0e0;
+      height: 18px;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 1em 0;
+      display: none;
+    }
+    #progress-bar-inner {
+      height: 100%;
+      background: #2196f3;
+      width: 0%;
+      transition: width 0.3s;
     }
     #upload-status { margin-top: 1em; font-weight: bold; min-height: 1.5em; }
-    .error { background: #ffebee; color: #c62828; padding: 15px; border-radius: 5px; margin: 10px 0; }
+    
+    /* UKRYTE INPUTY - NAPRAWDĘ UKRYTE */
+    .hidden-input { 
+      position: absolute; 
+      left: -9999px; 
+      opacity: 0; 
+      width: 1px; 
+      height: 1px;
+      visibility: hidden;
+    }
+    
+    .error {
+      background: #ffebee;
+      color: #c62828;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -84,56 +169,31 @@
   <!-- Ekran 2: Wybór pliku i upload -->
   <section id="media-screen">
     <h2>Dodaj zdjęcia i filmy</h2>
+    
+    <!-- PROSTE PRZYCISKI -->
     <button id="take-photo">📸 Zrób zdjęcie</button>
     <button id="record-video">🎥 Nagraj film</button>
     <button id="choose-file">📁 Wybierz pliki z telefonu</button>
+    
+    <!-- NAPRAWDĘ UKRYTE INPUTY -->
     <input type="file" id="photo-input" accept="image/*" capture="environment" class="hidden-input">
     <input type="file" id="video-input" accept="video/*" capture="user" class="hidden-input">
     <input type="file" id="file-input" accept="image/*,video/*" multiple class="hidden-input">
+    
+    <!-- Podgląd jako siatka kafelków -->
     <div id="preview"></div>
-    <div id="progress-bar"><div id="progress-bar-inner"></div></div>
+    
+    <!-- Upload -->
+    <div id="progress-bar">
+      <div id="progress-bar-inner"></div>
+    </div>
     <button id="upload-drive" disabled>Wyślij wszystkie na Drive</button>
     <div id="upload-status"></div>
+    
+    <!-- Wylogowanie -->
     <button id="logout" style="background:#ffecb3; color:#222; border:1px solid #ffe082;">Wyloguj</button>
   </section>
   
-  <!-- Ekran 3: Formularz zgłoszenia -->
-  <section id="form-screen" style="display:none;">
-    <h2>Zgłoszenie</h2>
-    <form id="incident-form" autocomplete="off">
-      <label>
-        <span>Tytuł zdarzenia:</span>
-        <input type="text" id="incident-title" placeholder="Np. zakłócanie porządku, wypadek..." required>
-      </label>
-      <label>
-        <span>Opis zdarzenia:</span>
-        <textarea id="incident-description" rows="4" placeholder="Opisz, co się stało..." required></textarea>
-      </label>
-      <label>
-        <span>Lokalizacja:</span>
-        <input type="text" id="incident-location" placeholder="Adres lub współrzędne">
-        <button type="button" id="get-location">📍 Pobierz moją lokalizację</button>
-        <div id="location-status" style="margin-bottom: 1em; color:#2196f3"></div>
-      </label>
-      <!-- Preview dowodów -->
-      <div>
-        <span style="font-weight:600;">Załączone dowody:</span>
-        <div id="evidence-preview"></div>
-      </div>
-      <!-- Pasek postępu uploadu -->
-      <div id="progress-bar-form" style="margin-top:20px;">
-        <div id="progress-bar-inner-form"></div>
-      </div>
-      <button type="submit" id="continue-recipient">Dalej</button>
-    </form>
-  </section>
-
   <script src="app.js"></script>
-  <script>
-    window.onerror = function(msg, url, line, col, error) {
-      document.body.innerHTML = '<div style="color:red;background:#fff;padding:2em;font-size:1.2em;">Błąd JavaScript:<br>' + msg + '<br>' + (error ? error.stack : '') + '</div>';
-      return false;
-    }
-  </script>
 </body>
 </html>
