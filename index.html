@@ -4,26 +4,13 @@
   <meta charset="UTF-8">
   <title>Szeryf - Upload na Google Drive</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Google Identity Services -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     body { font-family: sans-serif; background: #f8f9fa; color: #222; margin: 0; padding: 0; }
     section { max-width: 400px; margin: 4em auto; padding: 2em; background: #fff; border-radius: 10px; box-shadow: 0 2px 16px #ccc2; display: none; }
     section.active { display: block; }
     h2 { margin-top: 0; }
-    input[type="file"] {
-      display: block;
-      width: 100%;
-      margin: 1em 0;
-      padding: 1em;
-      font-size: 1em;
-      border-radius: 6px;
-      border: 1px solid #cfd8dc;
-      background: #e3f2fd;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    button {
+    button, input[type="file"] {
       display: block;
       width: 100%;
       margin: 1em 0;
@@ -36,6 +23,7 @@
       transition: background 0.2s;
     }
     button:disabled { background: #eee; color: #aaa; cursor: not-allowed; }
+    input[type="file"] { background: none; border: none; padding: 0; }
     #preview img, #preview video {
       max-width: 100%;
       margin-top: 1em;
@@ -58,6 +46,7 @@
       transition: width 0.3s;
     }
     #upload-status { margin-top: 1em; font-weight: bold; min-height: 1.5em; }
+    .hidden-input { opacity:0; position:absolute; left:-9999px; pointer-events:none; }
   </style>
 </head>
 <body>
@@ -77,7 +66,14 @@
   <section id="media-screen">
     <h2>Dodaj zdjęcie lub film</h2>
 
-    <input type="file" id="fileInput" accept="image/*,video/*;capture=camera" capture="environment">
+    <button id="take-photo">Zrób zdjęcie</button>
+    <input type="file" id="photo-input" accept="image/*" capture="environment" class="hidden-input">
+
+    <button id="record-video">Nagraj film</button>
+    <input type="file" id="video-input" accept="video/*" capture="user" class="hidden-input">
+
+    <button id="choose-file">Wybierz plik z telefonu</button>
+    <input type="file" id="file-input" accept="image/*,video/*" class="hidden-input">
 
     <div id="preview"></div>
     <div id="progress-bar">
