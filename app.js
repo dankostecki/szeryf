@@ -25,17 +25,35 @@ function resetMediaScreen() {
   document.getElementById('progress-bar').style.display = 'none';
   document.getElementById('progress-bar-inner').style.width = '0%';
   document.getElementById('upload-status').innerText = '';
-  document.getElementById('fileInput').value = '';
+  document.getElementById('photo-input').value = '';
+  document.getElementById('video-input').value = '';
+  document.getElementById('file-input').value = '';
 }
 
-document.getElementById('fileInput').addEventListener('change', function(e) {
+// Obsługa przycisków
+document.getElementById('take-photo').onclick = function() {
+  document.getElementById('photo-input').click();
+};
+document.getElementById('photo-input').addEventListener('change', handleFileSelect);
+
+document.getElementById('record-video').onclick = function() {
+  document.getElementById('video-input').click();
+};
+document.getElementById('video-input').addEventListener('change', handleFileSelect);
+
+document.getElementById('choose-file').onclick = function() {
+  document.getElementById('file-input').click();
+};
+document.getElementById('file-input').addEventListener('change', handleFileSelect);
+
+function handleFileSelect(e) {
   if (e.target.files.length > 0) {
     selectedFile = e.target.files[0];
     showPreview(selectedFile);
     document.getElementById('upload-drive').disabled = false;
     document.getElementById('upload-status').innerText = '';
   }
-});
+}
 
 function showPreview(file) {
   const preview = document.getElementById('preview');
@@ -70,7 +88,7 @@ function getAccessToken(callback) {
   }).requestAccessToken();
 }
 
-// ======= UPLOAD DO DRIVE Z PROGRESSEM I USTAWIENIEM UDOSTĘPNIANIA =======
+// ======= UPLOAD DO DRIVE Z PROGRESSEM I UDOSTĘPNIANIEM FOLDERU =======
 document.getElementById('upload-drive').onclick = function() {
   if (!selectedFile) return;
 
@@ -123,7 +141,6 @@ function createDriveFolder(token, folderName) {
     .then(data => data.id);
 }
 
-// Upublicznienie folderu (anyone with the link can view)
 function shareFolderAnyone(token, folderId) {
   return fetch(`https://www.googleapis.com/drive/v3/files/${folderId}/permissions`, {
     method: 'POST',
